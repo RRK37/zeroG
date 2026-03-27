@@ -38,11 +38,6 @@ if (passiveListen(&w,&x,&y,&z)) {
 }
 delay(30);
 
-
-lcd.setCursor(2,1);
-z = 82;
-lcd.print(char(z));
-
 //  SENDING MESSAGE
   // Serial.println(String(sendMessage(3,"ParallelWireless")));
   // while(true);

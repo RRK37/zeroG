@@ -44,10 +44,10 @@ bool receiveACK(int ADR) {
           // Sense the ACK address, should be 000.
           if (sample()) tADR += 4; delay(dt); if (sample()) tADR += 2; delay(dt); if (sample()) tADR += 1; delay(dt);
           if (tADR != 0) return false;
-          delay(dt);
           // Check if the correct address is sending the ACK
-          if (sample()) tADR += 4; delay(dt); if (sample()) tADR += 2; delay(dt); if (sample()) tADR += 1; delay(dt);
-          if (tADR == ADR) return true;
+          int sADR = 0;
+          if (sample()) sADR += 4; delay(dt); if (sample()) sADR += 2; delay(dt); if (sample()) sADR += 1; delay(dt);
+          if (sADR == ADR) return true;
           else return false;
       }
     }
@@ -120,7 +120,7 @@ bool activeListen(int* ADR, int* PID, int* DAT) {
     if (sample()) tDAT += 128; delay(dt); if (sample()) tDAT += 64; delay(dt); if (sample()) tDAT += 32; delay(dt); if (sample()) tDAT += 16; delay(dt); 
     if (sample()) tDAT += 8; delay(dt); if (sample()) tDAT += 4; delay(dt); if (sample()) tDAT += 2; delay(dt); if (sample()) tDAT += 1; delay(dt);
     // Check parity bit.
-    if (((tADR & 1)^(tADR & 2)^(tADR & 4)^(tPID & 1)^(tPID & 2)^(tPID & 4)^(tPID & 8)^(tDAT & 1)^(tDAT & 2)^(tDAT & 4)^(tDAT & 8)^(tDAT & 16)^(tDAT & 32)^(tDAT & 64)^(tDAT & 128)) == parity)  {return false;}
+    if (((tADR & 1)^(tADR & 2)^(tADR & 4)^(tPID & 1)^(tPID & 2)^(tPID & 4)^(tPID & 8)^(tDAT & 1)^(tDAT & 2)^(tDAT & 4)^(tDAT & 8)^(tDAT & 16)^(tDAT & 32)^(tDAT & 64)^(tDAT & 128)) != parity)  {return false;}
     // Check that the address matches.
     if (tADR != myADR) return false;
     // Now that the checks are passed, save the values to the memory adresses.
@@ -150,9 +150,10 @@ bool passiveListen(int* listenBit, int* ADR, int* PID, int* DAT) {
     
     // Check if two sample()s have been High in a row. If so enter activeListen and save values into ADR,PID,DAT
     if (*listenBit == 2) {
-        if (activeListen(ADR, PID, DAT)) {sendACK(ADR);}
+        bool received = activeListen(ADR, PID, DAT);
+        if (received) sendACK(ADR);
         *listenBit = 0;
-        return true;
+        return received;
     }
     else return false;
 }
@@ -161,7 +162,7 @@ bool passiveListen(int* listenBit, int* ADR, int* PID, int* DAT) {
 bool sendMessage(int* ADR, char message[]) {
 
     for (int i = 0; i < 16; i++) {
-        if (sendPacket(ADR,i,int(message[i])) == 0) return false;
+        if (sendPacket(*ADR,i,int(message[i])) == 0) return false;
         Serial.println(int(message[i]));
     }
     return true;
